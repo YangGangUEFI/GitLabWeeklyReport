@@ -1,0 +1,15 @@
+{
+  "gitlab_addr": "https://gitlab.com/",
+  "user_name": "Yang Gang",
+  "email_postfix": "@example.com",
+  "access_token": "xxxxx-xxxxx-x-x-xxxxxxxxxx",
+  "days": "2",
+  "repos_info": [
+    {
+      "project": "testgroup/testproject",
+      "branches": [
+        "main"
+      ]
+    }
+  ]
+}

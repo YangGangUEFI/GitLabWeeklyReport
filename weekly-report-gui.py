@@ -4,6 +4,7 @@ import datetime
 import gitlab
 import tkinter as tk
 import time
+import re
 
 project_info = {
     "test/test": 'master'
@@ -16,32 +17,51 @@ def get_project_commit_info(gl, commits, project_name, branch_name, author_name,
     since_date_str = since_date.strftime('%Y-%m-%dT%H:%M:%SZ')
     until_date_str = until_date.strftime('%Y-%m-%dT%H:%M:%SZ')
     
+    print(f"Project Name: {project.name}")
+    print(f"Default Branch: {project.default_branch}")
+
     index = 1
     pre_issue = 0
     for commit in project.commits.list(since=since_date_str, until=until_date_str, ref_name=branch_name, get_all=True)[::-1]:
+        print(f"{commit.title} / {commit.author_name} / {commit.author_email}")
         if commit.author_name == author_name or commit.author_email == author_name+email_postfix.get():
-            if '[#' in commit.title:
+            if '#' in commit.title:
                 string = commit.title
-                issue_id = string.split("[#")[1].split("]")[0]
-                issue = project.issues.get(id=issue_id)
+                match = re.search(r'#(\d+)', string)
+                if match:
+                    issue_id = match.group(1)
+            else:
+                mrs = commit.merge_requests()
 
-                if pre_issue and pre_issue == issue_id:
+                for mr_info in mrs:
+                    mr = project.mergerequests.get(mr_info['iid'])
+
+                    match = re.search(r'#(\d+)', mr.description)
+                    if match:
+                        issue_id = match.group(1)
+
+            issue = project.issues.get(id=issue_id)
+
+            if pre_issue and pre_issue == issue_id:
                    continue
-                pre_issue = issue_id
-                FixStr = ''
-                if 'Bug' in issue.labels:
-                   FixStr = 'Fix'
-                if 'Release' in issue.labels:
-                   commitstr = commit.title
-                   commits[branch_name+"@"+project_name].append(f'{str(index)+"."} {"#"+issue_id.zfill(4)} {commitstr.split("] ")[1]}')
-                else:
-                   commits[branch_name+"@"+project_name].append(f'{str(index)+"."} {"#"+issue_id.zfill(4)} {FixStr} {issue.title}')
-                # commits[project_name].append(f'[{branch_name}] [{commit.created_at[0:19]}] {"msg:"+commit.title} {"#"+issue_id.zfill(4)} {str(index)+"."} {issue.title}')
-                index+=1
+            pre_issue = issue_id
+            FixStr = ''
+            if 'Bug' in issue.labels:
+                FixStr = ' Fix'
+            commits[branch_name+"@"+project_name].append(f'{str(index)+"."} {"#"+issue_id.zfill(4)} {FixStr} {issue.title}')
+            # commits[project_name].append(f'[{branch_name}] [{commit.created_at[0:19]}] {"msg:"+commit.title} {"#"+issue_id.zfill(4)} {str(index)+"."} {issue.title}')
+            index+=1
 
 def get_and_gen_report():
     gl = gitlab.Gitlab(gitlab_addr.get(), private_token=access_token.get(), api_version='4')
     gl.auth()
+
+    user = gl.user
+    print(f"username: {user.username}")
+    print(f"userid: {user.id}")
+
+    print(f"GitLab server version: {gl.version()}")
+
     commits = defaultdict(list)
 
     repos_d = defaultdict()

@@ -7,6 +7,9 @@ import re
 import json
 from tkinter import filedialog, messagebox
 
+def normalize(text):
+    return text.replace(" ", "").lower()
+
 def get_project_commit_info(gl, commits, project_name, branch, user_name, end_time, days):
     try:
         project = gl.projects.get(project_name)
@@ -29,8 +32,13 @@ def get_project_commit_info(gl, commits, project_name, branch, user_name, end_ti
         if delta.days < 0 or delta.days >= days:
             continue
 
-        # print(f"{commit.title} / {commit.author_name} / {commit.author_email}")
-        if commit.author_name == user_name or commit.author_email == user_name + email_postfix_var.get():
+        print(f"{commit.title} / {commit.author_name} / {commit.author_email}")
+
+        author_name = normalize(commit.author_name)
+        user_name_norm = normalize(user_name)
+        author_email = normalize(commit.author_email)
+        expected_email = normalize(user_name + email_postfix_var.get())
+        if author_name == user_name_norm or author_email == expected_email:
             if '#' in commit.title:
                 string = commit.title
                 match = re.search(r'#(\d+)', string)
